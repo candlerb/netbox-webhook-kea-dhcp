@@ -1,13 +1,94 @@
 # Netbox kea-dhcp updater
 
 This code reads in KEA DHCP configs (`/etc/kea/kea-dhcp[46].conf`),
-updates them to include statically-assigned MAC to IP assignments from
+updates them to include statically-assigned MAC to IP reservations from
 Netbox, and writes them out again as `/var/lib/kea/kea-dhcp[46].conf`
 
 If the config has changed, it then signals the server to reload its config
 from disk.
 
-*But can't KEA read host reservations directly from Postgres?*
+Example input:
+
+```
+  ...
+  "subnet4": [
+    {
+      "subnet": "192.168.1.0/24",
+      "pools": [
+        { "pool": "192.168.1.100 - 192.168.1.149", "client-class": "HA_dhcp1" },
+        { "pool": "192.168.1.150 - 192.168.1.199", "client-class": "HA_dhcp2" }
+      ],
+      "option-data": [
+        { "name": "routers", "data": "192.168.1.1"}
+      ]
+    }
+  ]
+```
+
+Example output:
+
+```
+    ...
+    "subnet4": [
+      {
+        "subnet": "192.168.1.0/24",
+        "pools": [
+          {
+            "pool": "192.168.1.100 - 192.168.1.149",
+            "client-class": "HA_dhcp1"
+          },
+          {
+            "pool": "192.168.1.150 - 192.168.1.199",
+            "client-class": "HA_dhcp2"
+          }
+        ],
+        "option-data": [
+          {
+            "name": "routers",
+            "data": "192.168.1.1"
+          }
+        ],
+        "reservations": [
+          {
+            "hw-address": "bb:bb:bb:bb:bb",
+            "ip-address": "192.168.1.33",
+            "hostname": "prometheus.example.net."
+          },
+          {
+            "hw-address": "cc:cc:cc:cc:cc:cc",
+            "ip-address": "192.168.1.253",
+            "hostname": "ap-front.example.net."
+          },
+          {
+            "hw-address": "aa:aa:aa:aa:aa:aa",
+            "ip-address": "192.168.1.3",
+            "hostname": "storage1.example.net."
+          },
+          {
+            "hw-address": "dd:dd:dd:dd:dd:dd",
+            "ip-address": "192.168.1.254",
+            "hostname": "ap-rear.example.net."
+          }
+        ],
+        "id": 2
+      }
+    ]
+```
+
+**Is it a Netbox webhook?**
+
+No, it's not actually a webhook (yet).  It's a script than you can run from
+cron, or run manually when you've changed IP assignments.
+
+If it were to be triggered as a webhook, it would have to be triggered on
+all Device, Interface and IPAddress changes - but since the messages
+[don't say which fields have changed](https://github.com/netbox-community/netbox/issues/3451),
+we would have to do a full DHCP rebuild on every such change.
+
+A future compromise would be a webhook which sets a flag to schedule a
+rebuild to be done in the next minute (say).
+
+**But can't KEA read host reservations directly from Postgres?**
 
 [Yes](https://kea.readthedocs.io/en/v1_6_0/arm/admin.html#postgresql) - it
 might be possible to make a read-only view on the Netbox tables that looks
@@ -15,20 +96,20 @@ like the tables KEA expects to find.
 
 However you'd then have to replicate your Netbox database if you want a
 [high-availability](https://kea.readthedocs.io/en/v1_6_0/arm/hooks.html#ha-high-availability)
-configuration.
+DHCP configuration.
 
 In any case, other configuration items such as subnets and pools currently
 cannot come from Postgres - only from the config file, or a
 [mysql](https://kea.readthedocs.io/en/v1_6_0/arm/config.html#cb-components)
 configuration backend.
 
-*So does this code also add subnet and pool definitions from Netbox?*
+**So does this code also add subnet and pool definitions from Netbox?**
 
 No, at least not yet.  Subnets and pools must be added by hand into
 `/etc/kea/kea-dhcp[46].conf`.
 
 Netbox doesn't yet have a concept of [ranges](https://github.com/netbox-community/netbox/issues/834)
-to define pools which would be helpful - although it would be possible
+to define pools, which would be helpful - although it would be possible
 to define Custom Fields on the Prefix object.
 
 ## Logic
@@ -48,6 +129,12 @@ included in the DHCP static assignment.
 Currently, only the primary IPv4/IPv6 addresses are configured for DHCP.
 (Otherwise, if an interface had multiple IPv4 addresses, it wouldn't know
 which one to return; although multiple addresses can be returned for IPv6)
+
+The code finds the Netbox Prefix for the IP address.  If there is no
+matching subnet4/6 in the KEA configuration, then one is not created.
+
+The "id" added to the subnet is the netbox id of the Prefix object.
+If there is an existing id, is it retained instead.
 
 ## Dependencies
 
@@ -94,7 +181,7 @@ Inspect it to check it looks valid.
 
 Override the KEA config startup scripts so that it reads the freshly-written
 configs in the new location, by running `systemctl edit
-isc-kea-dhc4-server` and entering the following (capitalisation needs to be
+isc-kea-dhcp4-server` and entering the following (capitalisation needs to be
 exactly right):
 
 ```
