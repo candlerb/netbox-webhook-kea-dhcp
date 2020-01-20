@@ -188,7 +188,7 @@ exactly right):
 [Service]
 ExecStart=
 ExecStart=/usr/sbin/kea-dhcp4 -c /var/lib/kea/kea-dhcp4.conf
-Restart=On-Failure
+Restart=on-failure
 RestartSec=5
 ```
 
