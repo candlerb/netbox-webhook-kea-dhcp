@@ -153,7 +153,8 @@ Create a new database user for doing the queries:
 
 ```
 create user dhcp with password 'XXX';
-grant select on virtualization_virtualmachine,dcim_device,dcim_interface,ipam_ipaddress,ipam_prefix to dhcp;
+grant select on virtualization_virtualmachine,virtualization_vminterface,dcim_device,dcim_interface,
+                ipam_ipaddress,ipam_prefix,django_content_type to dhcp;
 ```
 
 Enable remote connections in `postgresql.conf`:
