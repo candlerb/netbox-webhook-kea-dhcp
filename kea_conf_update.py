@@ -83,9 +83,17 @@ def write_confs(confs):
 
 def update_confs(conn, confs):
     subnets = {}  # quick lookup prefix=>info
-    for r in confs["4"]["Dhcp4"]["subnet4"] + confs["6"]["Dhcp6"]["subnet6"]:
-        if "subnet" in r:
-            subnets[r["subnet"]] = r
+    def add(s):
+        nonlocal subnets
+        for r in s:
+            if "subnet" in r:
+                subnets[r["subnet"]] = r
+    add(confs["4"]["Dhcp4"].get("subnet4", []))
+    add(confs["6"]["Dhcp6"].get("subnet6", []))
+    for sn in confs["4"]["Dhcp4"].get("shared-networks", []):
+        add(sn.get("subnet4", []))
+    for sn in confs["6"]["Dhcp6"].get("shared-networks", []):
+        add(sn.get("subnet6", []))
 
     def addhosts(cur):
         for shortname, mac, ip, longname, s in cur:
