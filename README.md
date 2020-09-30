@@ -95,17 +95,17 @@ rebuild to be done in the next minute (say).
 
 **But can't KEA read host reservations directly from Postgres?**
 
-[Yes](https://kea.readthedocs.io/en/v1_6_0/arm/admin.html#postgresql) - it
+[Yes](https://kea.readthedocs.io/en/kea-1.6.0/arm/admin.html#postgresql) - it
 might be possible to make a read-only view on the Netbox tables that looks
 like the tables KEA expects to find.
 
 However you'd then have to replicate your Netbox database if you want a
-[high-availability](https://kea.readthedocs.io/en/v1_6_0/arm/hooks.html#ha-high-availability)
+[high-availability](https://kea.readthedocs.io/en/kea-1.6.0/arm/hooks.html#ha-high-availability)
 DHCP configuration.
 
 In any case, other configuration items such as subnets and pools currently
 cannot come from Postgres - only from the config file, or a
-[mysql](https://kea.readthedocs.io/en/v1_6_0/arm/config.html#cb-components)
+[mysql](https://kea.readthedocs.io/en/kea-1.6.0/arm/config.html#cb-components)
 configuration backend.
 
 **So does this code also add subnet and pool definitions from Netbox?**
