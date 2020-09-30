@@ -25,6 +25,11 @@ Example input:
   ]
 ```
 
+> Comments from '#' to end of line are stripped from the input.  Apart from
+> this, the input you provide must be valid JSON, which means no trailing
+> comma after the last element of a list - even though KEA itself accepts
+> this.
+
 Example output:
 
 ```
