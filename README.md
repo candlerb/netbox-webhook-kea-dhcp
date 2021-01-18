@@ -1,3 +1,7 @@
+**NOTE: There is a simpler solution to this problem at
+<https://blog.sys4.de/netbox-kea-dhcp-en.html>, which makes use of
+Kea's JSON `<?include?>` directive.**
+
 # Netbox kea-dhcp updater
 
 This code reads in KEA DHCP configs (`/etc/kea/kea-dhcp[46].conf`),
