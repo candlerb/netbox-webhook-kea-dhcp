@@ -13,18 +13,22 @@ SUBNET_QUERY = """SELECT id,prefix
 FROM ipam_prefix
 WHERE status='active'"""
 
-VM_QUERY = """SELECT DISTINCT vm.name,intf.mac_address,ip.address,ip.dns_name,prefix
+VM_QUERY = """SELECT DISTINCT vm.name,mac.mac_address,ip.address,ip.dns_name,prefix
 FROM virtualization_virtualmachine vm
 JOIN virtualization_vminterface intf ON vm.id=intf.virtual_machine_id
+JOIN dcim_macaddress mac ON mac.assigned_object_id=intf.id
+                         AND mac.assigned_object_type_id=(select id from django_content_type where app_label='virtualization' and model='vminterface')
 JOIN ipam_ipaddress ip ON (vm.primary_ip4_id=ip.id OR vm.primary_ip6_id=ip.id)
                        AND ip.assigned_object_id=intf.id
                        AND ip.assigned_object_type_id=(select id from django_content_type where app_label='virtualization' and model='vminterface')
 JOIN ipam_prefix pr ON set_masklen(ip.address,CASE family(ip.address) WHEN 4 THEN 32 ELSE 128 END) << pr.prefix
 WHERE pr.status='active' AND mac_address IS NOT NULL"""
 
-DEVICE_QUERY = """SELECT DISTINCT device.name,intf.mac_address,ip.address,ip.dns_name,prefix
+DEVICE_QUERY = """SELECT DISTINCT device.name,mac.mac_address,ip.address,ip.dns_name,prefix
 FROM dcim_device device
 JOIN dcim_interface intf ON device.id=intf.device_id
+JOIN dcim_macaddress mac ON mac.assigned_object_id=intf.id
+                         AND mac.assigned_object_type_id=(select id from django_content_type where app_label='dcim' and model='interface')
 JOIN ipam_ipaddress ip ON (device.primary_ip4_id=ip.id OR device.primary_ip6_id=ip.id)
                        AND ip.assigned_object_id=intf.id
                        AND ip.assigned_object_type_id=(select id from django_content_type where app_label='dcim' and model='interface')
