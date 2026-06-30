@@ -77,6 +77,7 @@ def write_confs(confs):
                     return
         except FileNotFoundError:
             pass
+        print("Updating %s" % dest, file=sys.stderr)
         with open(dest+".new", "w") as f:
             f.write(a)
         # TODO: newer versions of kea-dhcp support -t <file> to test config
